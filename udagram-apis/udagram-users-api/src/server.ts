@@ -35,6 +35,9 @@ import {V0_USER_MODELS} from './controllers/v0/model.index';
     res.send( '/api/v0/' );
   } );
 
+  app.get("/health", (req, res, next) => {
+    res.status(200).send("Hello!");
+  });
 
   // Start the Server
   app.listen( port, () => {
