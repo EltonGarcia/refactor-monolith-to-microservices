@@ -1,33 +1,29 @@
-language: node_js
-node_js:
-  - 13
+language: minimal
 
 services:
   - docker
 
-# Pre-testing installs
-install:
-  - echo "nothing needs to be installed"
+env:
+- DOCKER_COMPOSE_VERSION=1.23.2
 
 # Scripts to be run such as tests
 before_script:
-  - echo "no tests"
+  - docker -v && docker-compose -v
+  - sudo rm /usr/local/bin/docker-compose
+  - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+  - chmod +x docker-compose
+  - sudo mv docker-compose /usr/local/bin
+  - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+  - chmod +x ./kubectl
+  - sudo mv ./kubectl /usr/local/bin/kubectl
+
+install:
+  - echo "Nothing needs to be installed"
 
 script:
-  - docker --version # print the version for logging
-  - docker build udagram-apis/udagram-feed-api/. -t udagram-feed-api
-  - docker build udagram-apis/udagram-users-api/. -t udagram-users-api
-  - docker build udagram-frontend/. -t udagram-frontend
-  - docker build deploy/reverseproxy/. -t reverseproxy
-  - docker tag udagram-feed-api eltonsantana/udagram-feed-api:latest
-  - docker tag udagram-users-api eltonsantana/udagram-users-api:latest
-  - docker tag udagram-frontend eltonsantana/udagram-frontend:latest
-  - docker tag reverseproxy eltonsantana/reverseproxy:latest
+- docker-compose -f deploy/reverseproxy/docker-compose-build.yaml build --parallel
 
 # Tasks to perform after the process is successful. Formatting the Docker username and password as below enables you to programmatically log in without having the password exposed in logs.
 after_success:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-  - docker push eltonsantana/udagram-feed-api
-  - docker push eltonsantana/udagram-users-api
-  - docker push eltonsantana/udagram-frontend
-  - docker push eltonsantana/reverseproxy
+  - docker-compose -f deploy/reverseproxy/docker-compose-build.yaml push
